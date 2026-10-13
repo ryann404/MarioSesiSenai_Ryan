@@ -1,167 +1,154 @@
-// document.addEventListener('click', () => {
-//     // quando for clicado..
-//     alert("Você clicou na página!")
-// })
+/**
+ * Super Mario Jump - Lógica do Jogo e Integração com Ranking MySQL (Laragon)
+ */ 
 
-
-document.addEventListener('DOMContentLoaded', () =>{
-    // o DOMContentLoaded nao espera carregar as paradas
-    // a ordem é html, css e javascript carregando, respectivamente, mas pode haver variações..
-    
-    // o que foi feito com "=>" é arrow function, o normal seria:  
-    // function iniciar(){
-    //     console.log("Jogo Iniciado");sssss
-    // }
-    // const iniciar = () => {
-    //     console.log("Jogo Iniciado");
-    // }
-    // a funcao ja vem no const, no de cima (function) precisa passar pra const
-    
+document.addEventListener('DOMContentLoaded', () => {
+    // Elementos do Jogo
     const mario = document.querySelector('.mario');
     const pipe = document.querySelector('.pipe');
     const gameBoard = document.getElementById('game-board');
     const hudPlayerName = document.getElementById('hud-player-name');
     const scoreDisplay = document.getElementById('score-display');
     const jumpTip = document.getElementById('jump-tip');
+
+    // Modais e Telas
     const startModal = document.getElementById('start-modal');
-    const startForm = document.getElementById('start-form');
-    const playerInput = document.getElementById('player-input');
-    
-});
-    const startModal = document.getElementById('start-modal');
-    // modal = "janelinha"
     const startForm = document.getElementById('start-form');
     const playerInput = document.getElementById('player-input');
     const btnViewRanking = document.getElementById('btn-view-ranking');
+
     const gameoverModal = document.getElementById('gameover-modal');
     const finalScoreValue = document.getElementById('final-score-value');
-    const saveStatusMsg = document.getElementById('ranking-body');
+    const saveStatusMsg = document.getElementById('save-status-msg');
+    const rankingBody = document.getElementById('ranking-body');
     const btnRestart = document.getElementById('btn-restart');
     const btnChangePlayer = document.getElementById('btn-change-player');
 
+    // Variáveis de Estado
     let currentPlayer = '';
     let score = 0;
     let isPlaying = false;
     let gameLoop = null;
     let scoreLoop = null;
 
-    // RECUPERACAO DO ULTIMO NOME DE USER
-    const savedName = localStorage.getItem('mario-jump-player');
-    if (savedName && playerInput){
+    // Recupera último nome utilizado caso exista
+    const savedName = localStorage.getItem('mario_jump_player');
+    if (savedName && playerInput) {
         playerInput.value = savedName;
     }
-// fim recuperacao
-    function startGame(){
-        // limpou loops anteriores caso eles existam
+
+    /**
+     * Inicia uma nova rodada
+     */
+    function startGame() {
+        // Limpa loops anteriores se existirem
         clearInterval(gameLoop);
         clearInterval(scoreLoop);
 
-        // resetou as posicoes visuais
+        // Reseta posições e visuais
         resetElements();
 
         isPlaying = true;
         score = 0;
         scoreDisplay.textContent = '0';
-        // aciona a variavel e bota o valor
-        hudPlayerName.textContent = currentPlayer || 'Jogador'
+        hudPlayerName.textContent = currentPlayer || 'Jogador';
 
+        // Ativa animações CSS do jogo
         gameBoard.classList.add('running');
-        // deixa a classe do gameBoard com a class "running" tbm e ativa as animações
 
-        // vai dar um ponto a cada 0.1s
+        // Loop de pontuação progressiva (1 ponto a cada 100ms)
         scoreLoop = setInterval(() => {
-            
-            if (isPlaying){
-                
+            if (isPlaying) {
                 score += 1;
                 scoreDisplay.textContent = score;
-
             }
         }, 100);
+
+        // Loop de colisão
         gameLoop = setInterval(checkCollision, 10);
-        // checkCollision -> funcao que checa se o objeto encostou em algum outro elemento
     }
 
-    // resetar estilos e posicoes dos elementos
-    function resetElements(){
+
+    function resetElements() {
+        // Reseta cano
         pipe.style.animation = '';
         pipe.style.left = '';
-        // deixa cano sem nd
 
-        mario.src = '../assets/mario.gif';
-        // "../" é pra sair da pasta "JS" e o resto é pra entrar na pasta assets    
+        // Reseta Mario
+        mario.src = 'assets/mario.gif';
         mario.style.animation = '';
         mario.style.bottom = '0px';
         mario.style.width = '';
         mario.style.marginLeft = '';
         mario.classList.remove('jump');
 
-        if(jumpTip){
+        if (jumpTip) {
             jumpTip.style.opacity = '1';
-        // pra ele aparecer e nao fica invisivel
         }
     }
-    function jump(){
+
+    function jump() {
         if (!isPlaying) return;
         if (mario.classList.contains('jump')) return;
 
         mario.classList.add('jump');
 
-        if(jumpTip){
+        if (jumpTip) {
             jumpTip.style.opacity = '0';
         }
 
-        setTimeout(() =>{
+        setTimeout(() => {
             mario.classList.remove('jump');
         }, 500);
-        // agenda a remoção da classe sem travar o jogo todo
     }
-    // verificar a colisao entre o mario e o obstaculossss
-    function checkCollision(){
+
+    function checkCollision() {
         if (!isPlaying) return;
 
         const pipePosition = pipe.offsetLeft;
         const marioPosition = +window.getComputedStyle(mario).bottom.replace('px', '');
-        // ta pegando a propriedade css do mario em relação ao chao e tirando o "px"
 
-        if (pipePosition <= 120 && pipePosition > 0 && marioPosition < 80){
-            // se obstaculo tiver entre 120 e 0 e mario estiver mais alto que 80
+        // Tolerância de colisão: quando o cano está na faixa de contato com o Mario
+        if (pipePosition <= 120 && pipePosition > 0 && marioPosition < 80) {
             triggerGameOver(pipePosition, marioPosition);
         }
     }
-    // tratar o gameOver
-    function triggerGameOver(pipePosition, marioPosition){
+
+    function triggerGameOver(pipePosition, marioPosition) {
         isPlaying = false;
         clearInterval(gameLoop);
-        // tem que resetar tudo pra ir la no start tbm
-        clearInterval(scoreloop);
-        // pq os pontos param tbm
+        clearInterval(scoreLoop);
 
+        
         gameBoard.classList.remove('running');
 
+        
         pipe.style.animation = 'none';
         pipe.style.left = `${pipePosition}px`;
-        // para a animação e deixa o cano parado
 
+        // Congela o Mario na altura exata e muda para a imagem de Game Over
         mario.style.animation = 'none';
-        mario.style.bottom = `${marioPosition} px`;
-        mario.src = '../assets/game-over.png';
+        mario.style.bottom = `${marioPosition}px`;
+        mario.src = 'assets/game-over.png';
         mario.style.width = '75px';
         mario.style.marginLeft = '50px';
-    
-        // atualizacao do modal do gameover 
+
+        // Atualiza modal de Game Over
         finalScoreValue.textContent = score;
         saveStatusMsg.textContent = 'Salvando pontuação no banco...';
         saveStatusMsg.style.color = '#ffcc00';
 
-        gameoverModal.classList.add('Active');
-        
-        saveScore(currentPlayer, score)
-        // salvando a pontuação no banco com a função "saveScore"
+        // Abre modal de Game Over
+        gameoverModal.classList.add('active');
+
+        // Salva a pontuação no banco MySQL via PHP
+        saveScore(currentPlayer, score);
     }
-    function saveScore(playerName, finalScore){
+
+
+    function saveScore(playerName, finalScore) {
         fetch('salvar_ranking.php', {
-            method: POST,
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -171,111 +158,144 @@ document.addEventListener('DOMContentLoaded', () =>{
             })
         })
         .then(res => res.json())
-        // aguarda a resposta do json
         .then(data => {
-            if(data.status === 'success'){
-                saveStatusMsg.textContent = 'Pontuação Registrada no banco!';
+            if (data.status === 'success') {
+                saveStatusMsg.textContent = 'Pontuação registrada no banco!';
                 saveStatusMsg.style.color = '#10b981';
-                if(data.ranking){
+                if (data.ranking) {
                     renderRanking(data.ranking, playerName, finalScore);
                 }
-            } else{
-                    saveStatusMsg.textContent = (data.message || 'Erro ao registrar.');
-                    // se nao tiver o data.message, ele vai escrever que deu erro
-                    saveStatusMsg.style.color = '#ef4444';
-                }
-            })
-            .catch(err => {
-                console.error('Erro na comunicação', err);
-                saveStatusMsg.textContent = 'Erro ao conectar ao servidor.';
+            } else {
+                saveStatusMsg.textContent = '⚠️ ' + (data.message || 'Erro ao registrar.');
                 saveStatusMsg.style.color = '#ef4444';
+            }
+        })
+        .catch(err => {
+            console.error('Erro na requisição:', err);
+            saveStatusMsg.textContent = '⚠️ Erro ao conectar ao servidor Laragon.';
+            saveStatusMsg.style.color = '#ef4444';
         });
     }
 
-    // busca do ranking atualizado no banco
-    function fetchRanking(){
+    /**
+     * Busca o ranking atualizado no banco
+     */
+    function fetchRanking() {
         fetch('obter_ranking.php')
-        .then(res => res.json())
-        .then(data => {
-            if (data.status === 'sucess' && data.ranking){
-                renderRanking(data.ranking);
-            }
-        })
-        .catch(err => console.error('Erro ao buscar o ranking', err))
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success' && data.ranking) {
+                    renderRanking(data.ranking);
+                }
+            })
+            .catch(err => console.error('Erro ao buscar ranking:', err));
     }
 
-    // atualizando a tabela no ranking
-    // o usuario precisa estar destacado para que ele nao tenha que procurar
-    function renderRanking(list, highlightName = null, highlightScore = null){
-        if(!rankingBody) return;
+    /**
+     * Atualiza a tabela HTML do ranking
+     */
+    function renderRanking(list, highlightName = null, highlightScore = null) {
+        if (!rankingBody) return;
         rankingBody.innerHTML = '';
-        // em outras palavras, ele limpa o conteudo
 
-        if(!list || list.length === 0){
-            rankingBody.innerHTML = `<tr><td colspan="3" class="loading-cell">Nenhuma pontuação gravada ainda</td></tr>`;
+        if (!list || list.length === 0) {
+            rankingBody.innerHTML = '<tr><td colspan="3" class="loading-cell">Nenhuma pontuação gravada ainda. Jogue para ser o 1º!</td></tr>';
             return;
         }
-        let highlightted = false;
+
+        let highlighted = false;
 
         list.forEach((item, index) => {
             const tr = document.createElement('tr');
 
-            if(!highlightted && highlightName && item.nome === highlightName && parseInt(item.pontos, 10) === highlightScore){
+            // Destaca a pontuação atual recém-salva se coincidir
+            if (!highlighted && highlightName && item.nome === highlightName && parseInt(item.pontos, 10) === highlightScore) {
                 tr.classList.add('highlight-current');
-                highlightted = true;
+                highlighted = true;
             }
 
             let medal = `${index + 1}º`;
             if (index === 0) medal = '🥇 1º';
-            else if (index === 1) medal = '🥈 2°';
-            else if (index === 2) medal = '🥉 3°';
+            else if (index === 1) medal = '🥈 2º';
+            else if (index === 2) medal = '🥉 3º';
 
             tr.innerHTML = `
-            <td class="ranking-pos">${medal}</td>
-            <td><strong>${escapeHtml(item.nome)}</strong></td>
+                <td class="ranking-pos">${medal}</td>
+                <td><strong>${escapeHtml(item.nome)}</strong></td>
+                <td>${parseInt(item.pontos, 10)} pts</td>
             `;
 
             rankingBody.appendChild(tr);
         });
     }
 
-    // TRATAMENTO DE STRING
-    function escapeHtml(str){
+    /**
+     * Função auxiliar para sanitizar strings no HTML
+     */
+    function escapeHtml(str) {
         if (!str) return '';
         return String(str)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;')
-            // transformando caracteres especiais em codigos html
-            // pro html nao aceitar alguns caracteres
-            // o "g" é de global, o caractere entre barras é o caractere a ser substituido
-            // e o '&..' sao os comandos no paranaue
+            .replace(/'/g, '&#039;');
     }
 
-    // eventos de controle e interface do jogo
-    // INICIAR O JOGO (formulario)
-
-    startForm.addEventListener('submit', (e) =>{
-        // e = parametro
-        e.preventDefault();
-        // impede o recarregamento da pagina
+    // Submit do Formulário de Início (INICIAR JOGO)
+    startForm.addEventListener('submit', (e) => {
+        e.preventDefault(); // Impede o recarregamento da página
 
         const nameValue = playerInput.value.trim();
-        // "trim" tira o espaço que o usuario colocsr antes e depois
-
-        if (!nameValue){
+        if (!nameValue) {
             playerInput.focus();
             return;
         }
 
         currentPlayer = nameValue;
-        localStorage.setItem('mario-jump-player', currentPlayer);
-        // fecha a tela e começa o jogo depois de preencher os dados
+        localStorage.setItem('mario_jump_player', currentPlayer);
+
+        // Fecha tela de início e começa o jogo
         startModal.classList.remove('active');
         startGame();
-
     });
 
-    // botao ver ranking
+    // Botão "VER RANKING" na tela inicial
+    btnViewRanking.addEventListener('click', () => {
+        fetchRanking();
+        finalScoreValue.textContent = '---';
+        saveStatusMsg.textContent = '';
+        startModal.classList.remove('active');
+        gameoverModal.classList.add('active');
+    });
+
+    // Botão "JOGAR NOVAMENTE" no Game Over
+    btnRestart.addEventListener('click', () => {
+        gameoverModal.classList.remove('active');
+        if (!currentPlayer) {
+            startModal.classList.add('active');
+            playerInput.focus();
+        } else {
+            startGame();
+        }
+    });
+
+    // 4. Botão "TROCAR JOGADOR" no Game Over
+    btnChangePlayer.addEventListener('click', () => {
+        gameoverModal.classList.remove('active');
+        resetElements();
+        startModal.classList.add('active');
+        playerInput.value = '';
+        playerInput.focus();
+    });
+
+    // 5. Controle do Pulo por Teclado (Espaço ou Seta para Cima)
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.key === ' ' || e.code === 'ArrowUp') {
+            if (isPlaying) {
+                e.preventDefault();
+                jump();
+            }
+        }
+    });
+});
